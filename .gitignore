@@ -39,3 +39,6 @@ Thumbs.db
 
 # Base local utilizada exclusivamente para comparación
 /intro/todo_app_mateus/
+
+# Notas y gráficos locales de integración (no publicar ni incorporar a main)
+/intro/docs/integracion_gustavo/
