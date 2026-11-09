@@ -288,6 +288,15 @@ def todo_item(todo: rx.Var[TodoView]):
                     ),
                 ),
                 prioridad_control(todo.prioridad),
+                # APORTE DE GUSTAVO: mostrar las horas ya guardadas en cada tarea.
+                rx.hstack(
+                    rx.icon('clock', size=16, color='#94a3b8'),
+                    rx.text(
+                        'Horas estimadas: ', todo.estimated_hours, ' h',
+                        size='2', color='#cbd5e1',
+                    ),
+                    align='center', gap='6px',
+                ),
                 rx.vstack(
                     rx.hstack(
                         rx.text(
