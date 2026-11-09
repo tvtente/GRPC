@@ -8,7 +8,7 @@ Trabajo en la rama `gustavo`, sin integrar en `main`.
 - Matheus: fecha límite opcional `due_date`, captura en el formulario, persistencia y visualización en las tareas.
 - Sanjana: `progress`, deslizador y flujo de actualización del progreso.
 
-La adaptación conserva la separación interfaz → estado → repositorio → modelo/base de datos → vista/listado. El código original recibido de Matheus se conserva sin modificaciones en [`todo_app_mateus/`](../../todo_app_mateus/). Es material de referencia; la aplicación activa sigue siendo `todo_app`.
+La adaptación conserva la separación interfaz → estado → repositorio → modelo/base de datos → vista/listado. La carpeta `todo_app_mateus/` es exclusivamente una base local de comparación y clasificación; se conserva sin modificaciones en el equipo y se excluye del seguimiento de Git. La aplicación activa es `todo_app`.
 
 ## Observaciones y resolución en esta rama
 

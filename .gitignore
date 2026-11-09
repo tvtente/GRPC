@@ -36,3 +36,6 @@ dist/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Base local utilizada exclusivamente para comparación
+/intro/todo_app_mateus/
