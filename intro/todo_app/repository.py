@@ -21,6 +21,7 @@ class TodoView:
     formatted_date: str
     estimated_hours: float
     due_date: str = ''
+    # LINDEY (adaptación): incluir la prioridad al cargar/actualizar cada tarea.
     prioridad: str = POR_DEFECTO
 
 
@@ -45,6 +46,7 @@ def validate_text(title: str, description: str) -> tuple[str,str | None]:
 
 
 def validate_prioridad(prioridad: str) -> str:
+    """Regla de selección de Lindey, validada en el repositorio compartido."""
     if prioridad not in PRIORIDADES:
         raise ValueError('Elija una prioridad válida: Baja, Media, Alta o Urgente.')
     return prioridad
@@ -90,7 +92,8 @@ class TodoRepository:
         with Session(self.engine) as session:
             todo = Todo(title=title,description=description,estimated_hours=hours,
                         due_date=due_date or None,prioridad=prioridad)
-            # Se guarda en la misma tarea: no buscar registros por MAX(id).
+            # ADAPTACIÓN EN GUSTAVO del alta de Lindey: una sola transacción.
+            # Sustituye preparar_nueva/aplicar_nueva y evita buscar por MAX(id).
             session.add(todo)
             session.commit()
             session.refresh(todo)
@@ -105,7 +108,8 @@ class TodoRepository:
             if todo is None:
                 raise ValueError('La tarea ya no existe. Actualiza la lista.')
             todo.title,todo.description = title,description
-            # Texto y prioridad se confirman juntos; si falla la validación no cambia ninguno.
+            # ADAPTACIÓN EN GUSTAVO de guardar_edicion de Lindey:
+            # texto y prioridad se confirman juntos tras validar ambos.
             if prioridad is not None:
                 todo.prioridad = prioridad
             session.add(todo)

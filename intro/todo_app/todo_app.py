@@ -5,6 +5,7 @@ import logging
 import reflex as rx
 
 from .repository import TodoRepository, TodoView
+# LINDEY: controles de prioridad; adaptados para trabajar con TodoState.
 from .prioridad import prioridad_control, prioridad_formulario, prioridad_edicion
 
 
@@ -80,6 +81,7 @@ class TodoState(rx.State):
 
     @rx.event
     def set_new_prioridad(self, value: str):
+        """Captura del selector de Lindey; la validación definitiva es del repositorio."""
         self.new_prioridad = value
 
     @rx.event
@@ -114,6 +116,8 @@ class TodoState(rx.State):
 
     @rx.event
     def add_todo(self):
+        # ADAPTACIÓN EN GUSTAVO: la prioridad de Lindey se envía con los demás
+        # campos. El mismo error impide el alta y conserva todo el formulario.
         try:
             TodoRepository().create(
                 title=self.new_title,
@@ -164,6 +168,7 @@ class TodoState(rx.State):
             self.editing_id = todo.id
             self.edit_title = todo.title
             self.edit_description = todo.description
+            # LINDEY: abrir la edición con la prioridad actual, sin otro estado.
             self.edit_prioridad = todo.prioridad
             self.edit_error = ''
             self.edit_open = True
@@ -178,6 +183,7 @@ class TodoState(rx.State):
 
     @rx.event
     def set_edit_prioridad(self, value: str):
+        """Selección de prioridad en el diálogo de Lindey adaptado."""
         self.edit_prioridad = value
 
     @rx.event
@@ -186,6 +192,8 @@ class TodoState(rx.State):
 
     @rx.event
     def update_todo(self):
+        # La edición de prioridad de Lindey comparte validación y transacción
+        # con el texto; no se guarda primero en un evento independiente.
         try:
             TodoRepository().edit(
                 self.editing_id,

@@ -20,5 +20,5 @@ class Todo(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now)
     estimated_hours: float = Field(default=0.0, nullable=False)
     due_date: str | None = Field(default=None, max_length=10)
-    # Prioridad de Lindey: forma parte de la tarea, igual que horas y progreso.
+    # LINDEY (adaptación en gustavo): su columna prioridad pasa al modelo común.
     prioridad: str = Field(default=POR_DEFECTO, max_length=16, nullable=False)
