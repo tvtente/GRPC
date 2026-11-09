@@ -5,6 +5,8 @@ import logging
 import reflex as rx
 
 from .repository import TodoRepository, TodoView
+# LINDEY: controles de prioridad; adaptados para trabajar con TodoState.
+from .prioridad import prioridad_control, prioridad_formulario, prioridad_edicion
 
 
 logger = logging.getLogger(__name__)
@@ -15,12 +17,16 @@ class TodoState(rx.State):
     new_title: str = ''
     new_description: str = ''
     new_estimated_hours: str = ''
+    new_due_date: str = ''
+    # Regla de Lindey: el usuario debe elegir una prioridad al crear.
+    new_prioridad: str = ''
     error: str = ''
     search: str = ''
     status_filter: str = 'Todas'
     editing_id: int = 0
     edit_title: str = ''
     edit_description: str = ''
+    edit_prioridad: str = ''
     edit_open: bool = False
     edit_error: str = ''
     delete_id: int = 0
@@ -70,6 +76,15 @@ class TodoState(rx.State):
         self.new_estimated_hours = value
 
     @rx.event
+    def set_new_due_date(self, value: str):
+        self.new_due_date = value
+
+    @rx.event
+    def set_new_prioridad(self, value: str):
+        """Captura del selector de Lindey; la validación definitiva es del repositorio."""
+        self.new_prioridad = value
+
+    @rx.event
     def set_search(self, value: str):
         self.search = value
 
@@ -101,11 +116,15 @@ class TodoState(rx.State):
 
     @rx.event
     def add_todo(self):
+        # ADAPTACIÓN EN GUSTAVO: la prioridad de Lindey se envía con los demás
+        # campos. El mismo error impide el alta y conserva todo el formulario.
         try:
             TodoRepository().create(
-                self.new_title,
-                self.new_description,
-                estimated_hours=self.new_estimated_hours
+                title=self.new_title,
+                description=self.new_description,
+                estimated_hours=self.new_estimated_hours,
+                due_date=self.new_due_date,
+                prioridad=self.new_prioridad,
             )
         except Exception as exc:
             self.error = self._report(exc, 'guardar la tarea')
@@ -114,6 +133,8 @@ class TodoState(rx.State):
         self.new_title = ''
         self.new_description = ''
         self.new_estimated_hours = ''
+        self.new_due_date = ''
+        self.new_prioridad = ''
         self.load_todos()
         return rx.toast.success('Tarea añadida correctamente')
 
@@ -147,6 +168,8 @@ class TodoState(rx.State):
             self.editing_id = todo.id
             self.edit_title = todo.title
             self.edit_description = todo.description
+            # LINDEY: abrir la edición con la prioridad actual, sin otro estado.
+            self.edit_prioridad = todo.prioridad
             self.edit_error = ''
             self.edit_open = True
 
@@ -159,16 +182,24 @@ class TodoState(rx.State):
         self.edit_description = value
 
     @rx.event
+    def set_edit_prioridad(self, value: str):
+        """Selección de prioridad en el diálogo de Lindey adaptado."""
+        self.edit_prioridad = value
+
+    @rx.event
     def set_edit_open(self, value: bool):
         self.edit_open = value
 
     @rx.event
     def update_todo(self):
+        # La edición de prioridad de Lindey comparte validación y transacción
+        # con el texto; no se guarda primero en un evento independiente.
         try:
             TodoRepository().edit(
                 self.editing_id,
                 self.edit_title,
-                self.edit_description
+                self.edit_description,
+                prioridad=self.edit_prioridad,
             )
         except Exception as exc:
             self.edit_error = self._report(exc, 'editar la tarea')
@@ -249,6 +280,14 @@ def todo_item(todo: rx.Var[TodoView]):
                     color='#94a3b8',
                     size='1',
                 ),
+                rx.cond(
+                    todo.due_date != '',
+                    rx.text(
+                        'Fecha límite: ', todo.due_date,
+                        color='#93c5fd', size='1', weight='medium',
+                    ),
+                ),
+                prioridad_control(todo.prioridad),
                 rx.vstack(
                     rx.hstack(
                         rx.text(
@@ -338,9 +377,22 @@ def todo_form():
                 min_height='100px',
             ),
             rx.grid(
-                # Espacio reservado para Fecha límite y Prioridad.
-                rx.box(height='76px'),
-                rx.box(height='76px'),
+                rx.vstack(
+                    rx.hstack(
+                        rx.icon('calendar', size=18),
+                        rx.text('Fecha límite', weight='medium'),
+                        align='center', gap='8px',
+                    ),
+                    rx.input(
+                        type='date', name='due_date',
+                        aria_label='Fecha límite',
+                        value=TodoState.new_due_date,
+                        on_change=TodoState.set_new_due_date,
+                        width='100%', size='3',
+                    ),
+                    align='start', gap='8px', width='100%', min_width='0',
+                ),
+                prioridad_formulario(TodoState.new_prioridad, TodoState.set_new_prioridad),
                 rx.vstack(
                     rx.hstack(
                         rx.icon('clock', size=18),
@@ -438,7 +490,7 @@ def dialogs():
             rx.dialog.content(
                 rx.dialog.title('Editar tarea'),
                 rx.dialog.description(
-                    'Modifica el título y la descripción. '
+                    'Modifica el título, la descripción y la prioridad. '
                     'La fecha y el estado se conservan.'
                 ),
                 rx.form(
@@ -456,6 +508,7 @@ def dialogs():
                             max_length=3000,
                             aria_label='Descripción de la tarea',
                         ),
+                        prioridad_edicion(TodoState.edit_prioridad, TodoState.set_edit_prioridad),
                         rx.cond(
                             TodoState.edit_error != '',
                             rx.callout(

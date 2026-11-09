@@ -37,6 +37,9 @@ El código se entrega sin entorno virtual, frontend compilado, estado temporal n
 - Confirmar antes de eliminarla de la base de datos.
 - Buscar por título/descripción y filtrar por estado.
 - Pulsar Actualizar para consultar cambios realizados desde otra pestaña.
+- Elegir prioridad Baja, Media, Alta o Urgente al crear una tarea y modificarla al editar.
+
+La prioridad conserva los niveles, colores y controles aportados por Lindey. La adaptación en `gustavo` guarda prioridad y texto en la misma transacción del repositorio, siguiendo la estructura compartida. Las tareas antiguas reciben `Media`; el formulario de creación exige una elección explícita. El repositorio conserva `Media` como valor por defecto para llamadas existentes que no envían ese argumento.
 
 La base empieza vacía. Crea «Grabar vídeo» e «Ir al gimnasio» si quieres reproducir la demostración. Los datos se conservan al reiniciar el servidor.
 
