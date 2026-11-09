@@ -3,7 +3,11 @@ name = "ejercicio992-reflex-crud"
 version = "0.1.0"
 description = "CRUD de tareas reconstruido a partir de capturas"
 requires-python = ">=3.11"
-dependencies = ["reflex>=0.10.1,<0.11", "sqlmodel>=0.0.48,<0.1"]
+dependencies = [
+    "reflex>=0.10.1,<0.11",
+ "sqlmodel>=0.0.48,<0.1",
+ "tzdata>=2026.6",
+]
 
 [build-system]
 requires = ["setuptools>=68"]

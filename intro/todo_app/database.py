@@ -41,3 +41,8 @@ def init_database(engine=None):
                 'ALTER TABLE todos '
                 'ADD COLUMN estimated_hours REAL NOT NULL DEFAULT 0'
             ))
+        if 'progress' not in column_names:
+            connection.execute(text(
+                'ALTER TABLE todos '
+                'ADD COLUMN progress INTEGER NOT NULL DEFAULT 0'
+            ))

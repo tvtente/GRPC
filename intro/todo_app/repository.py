@@ -15,6 +15,7 @@ class TodoView:
     title: str
     description: str
     completed: bool
+    progress: int
     created_at: str
     formatted_date: str
     estimated_hours: float
@@ -25,7 +26,7 @@ def as_view(todo: Todo) -> TodoView:
     if created.tzinfo is None:
         created = created.replace(tzinfo=timezone.utc)
     return TodoView(id=todo.id,title=todo.title,description=todo.description or '',
-                    completed=todo.completed,created_at=created.isoformat(),
+                    completed=todo.completed, progress=todo.progress, created_at=created.isoformat(),
                     formatted_date=created.astimezone(ZoneInfo('Europe/Madrid')).strftime('%d/%m/%Y %H:%M'),
                     estimated_hours=todo.estimated_hours)
 
@@ -81,6 +82,22 @@ class TodoRepository:
             result = session.exec(update(Todo).where(Todo.id==todo_id).values(completed=completed))
             if result.rowcount != 1:
                 raise ValueError('La tarea ya no existe. Actualiza la lista.')
+            session.commit()
+
+    def set_progress(self, todo_id: int, progress: int):
+        if not 0 <= progress <= 100:
+            raise ValueError('El progreso debe estar entre 0 y 100.')
+
+        with Session(self.engine) as session:
+            result = session.exec(
+                update(Todo)
+                .where(Todo.id == todo_id)
+                .values(progress=progress)
+            )
+
+            if result.rowcount != 1:
+                raise ValueError('La tarea ya no existe. Actualiza la lista.')
+
             session.commit()
 
     def delete(self,todo_id: int):
