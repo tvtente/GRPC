@@ -1,0 +1,38 @@
+.web
+.states
+assets/external/
+# Entornos y archivos generados por Python y Reflex
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.web/
+.states/
+reflex.lock/
+node_modules/
+.pytest_cache/
+build/
+dist/
+
+# Configuración local y credenciales
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.aws/
+.codex/
+.agents/
+
+# Bases de datos locales
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+
+# Editor y sistema
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
