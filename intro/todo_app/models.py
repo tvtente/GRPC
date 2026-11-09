@@ -18,3 +18,4 @@ class Todo(SQLModel, table=True):
     # Cada instancia obtiene su fecha; datetime.now() como valor fijo se evaluaría al importar.
     created_at: datetime = Field(default_factory=utc_now)
     estimated_hours: float = Field(default=0.0, nullable=False)
+    due_date: str | None = Field(default=None, max_length=10)

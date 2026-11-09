@@ -46,3 +46,7 @@ def init_database(engine=None):
                 'ALTER TABLE todos '
                 'ADD COLUMN progress INTEGER NOT NULL DEFAULT 0'
             ))
+        if 'due_date' not in column_names:
+            connection.execute(text(
+                'ALTER TABLE todos ADD COLUMN due_date TEXT'
+            ))

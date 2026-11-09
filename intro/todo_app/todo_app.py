@@ -15,6 +15,7 @@ class TodoState(rx.State):
     new_title: str = ''
     new_description: str = ''
     new_estimated_hours: str = ''
+    new_due_date: str = ''
     error: str = ''
     search: str = ''
     status_filter: str = 'Todas'
@@ -70,6 +71,10 @@ class TodoState(rx.State):
         self.new_estimated_hours = value
 
     @rx.event
+    def set_new_due_date(self, value: str):
+        self.new_due_date = value
+
+    @rx.event
     def set_search(self, value: str):
         self.search = value
 
@@ -103,9 +108,10 @@ class TodoState(rx.State):
     def add_todo(self):
         try:
             TodoRepository().create(
-                self.new_title,
-                self.new_description,
-                estimated_hours=self.new_estimated_hours
+                title=self.new_title,
+                description=self.new_description,
+                estimated_hours=self.new_estimated_hours,
+                due_date=self.new_due_date,
             )
         except Exception as exc:
             self.error = self._report(exc, 'guardar la tarea')
@@ -114,6 +120,7 @@ class TodoState(rx.State):
         self.new_title = ''
         self.new_description = ''
         self.new_estimated_hours = ''
+        self.new_due_date = ''
         self.load_todos()
         return rx.toast.success('Tarea añadida correctamente')
 
@@ -249,6 +256,13 @@ def todo_item(todo: rx.Var[TodoView]):
                     color='#94a3b8',
                     size='1',
                 ),
+                rx.cond(
+                    todo.due_date != '',
+                    rx.text(
+                        'Fecha límite: ', todo.due_date,
+                        color='#93c5fd', size='1', weight='medium',
+                    ),
+                ),
                 rx.vstack(
                     rx.hstack(
                         rx.text(
@@ -338,8 +352,22 @@ def todo_form():
                 min_height='100px',
             ),
             rx.grid(
-                # Espacio reservado para Fecha límite y Prioridad.
-                rx.box(height='76px'),
+                rx.vstack(
+                    rx.hstack(
+                        rx.icon('calendar', size=18),
+                        rx.text('Fecha límite', weight='medium'),
+                        align='center', gap='8px',
+                    ),
+                    rx.input(
+                        type='date', name='due_date',
+                        aria_label='Fecha límite',
+                        value=TodoState.new_due_date,
+                        on_change=TodoState.set_new_due_date,
+                        width='100%', size='3',
+                    ),
+                    align='start', gap='8px', width='100%', min_width='0',
+                ),
+                # Espacio reservado para Prioridad.
                 rx.box(height='76px'),
                 rx.vstack(
                     rx.hstack(

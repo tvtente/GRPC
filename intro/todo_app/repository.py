@@ -1,5 +1,5 @@
 """Operaciones CRUD. Cada operación abre, confirma y cierra su propia sesión."""
-from datetime import timezone
+from datetime import date, timezone
 from zoneinfo import ZoneInfo
 from dataclasses import dataclass
 from math import isfinite
@@ -19,6 +19,7 @@ class TodoView:
     created_at: str
     formatted_date: str
     estimated_hours: float
+    due_date: str = ''
 
 
 def as_view(todo: Todo) -> TodoView:
@@ -28,7 +29,7 @@ def as_view(todo: Todo) -> TodoView:
     return TodoView(id=todo.id,title=todo.title,description=todo.description or '',
                     completed=todo.completed, progress=todo.progress, created_at=created.isoformat(),
                     formatted_date=created.astimezone(ZoneInfo('Europe/Madrid')).strftime('%d/%m/%Y %H:%M'),
-                    estimated_hours=todo.estimated_hours)
+                    estimated_hours=todo.estimated_hours,due_date=todo.due_date or '')
 
 
 def validate_text(title: str, description: str) -> tuple[str,str | None]:
@@ -52,8 +53,23 @@ class TodoRepository:
             rows = session.exec(select(Todo).order_by(Todo.created_at.desc(),Todo.id.desc())).all()
             return [as_view(todo) for todo in rows]
 
-    def create(self,title: str,description: str='',estimated_hours: str='') -> TodoView:
+    def create(
+        self,
+        title: str,
+        description: str = '',
+        *,
+        estimated_hours: str = '',
+        due_date: str = '',
+    ) -> TodoView:
         title,description = validate_text(title,description)
+        due_date = due_date.strip()
+        if due_date:
+            try:
+                parsed_date = date.fromisoformat(due_date)
+                if parsed_date.isoformat() != due_date:
+                    raise ValueError
+            except ValueError:
+                raise ValueError('La fecha límite debe ser una fecha válida con formato AAAA-MM-DD.') from None
         try:
             hours = float(estimated_hours.strip().replace(',','.') or '0')
         except ValueError:
@@ -61,7 +77,8 @@ class TodoRepository:
         if not isfinite(hours) or hours < 0:
             raise ValueError('Las horas estimadas deben ser un número finito mayor o igual que cero.')
         with Session(self.engine) as session:
-            todo = Todo(title=title,description=description,estimated_hours=hours)
+            todo = Todo(title=title,description=description,estimated_hours=hours,
+                        due_date=due_date or None)
             session.add(todo)
             session.commit()
             session.refresh(todo)
