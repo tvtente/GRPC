@@ -5,6 +5,7 @@ import logging
 import reflex as rx
 
 from .repository import TodoRepository, TodoView
+from .prioridad import prioridad_control, prioridad_formulario, prioridad_edicion
 
 
 logger = logging.getLogger(__name__)
@@ -16,12 +17,15 @@ class TodoState(rx.State):
     new_description: str = ''
     new_estimated_hours: str = ''
     new_due_date: str = ''
+    # Regla de Lindey: el usuario debe elegir una prioridad al crear.
+    new_prioridad: str = ''
     error: str = ''
     search: str = ''
     status_filter: str = 'Todas'
     editing_id: int = 0
     edit_title: str = ''
     edit_description: str = ''
+    edit_prioridad: str = ''
     edit_open: bool = False
     edit_error: str = ''
     delete_id: int = 0
@@ -75,6 +79,10 @@ class TodoState(rx.State):
         self.new_due_date = value
 
     @rx.event
+    def set_new_prioridad(self, value: str):
+        self.new_prioridad = value
+
+    @rx.event
     def set_search(self, value: str):
         self.search = value
 
@@ -112,6 +120,7 @@ class TodoState(rx.State):
                 description=self.new_description,
                 estimated_hours=self.new_estimated_hours,
                 due_date=self.new_due_date,
+                prioridad=self.new_prioridad,
             )
         except Exception as exc:
             self.error = self._report(exc, 'guardar la tarea')
@@ -121,6 +130,7 @@ class TodoState(rx.State):
         self.new_description = ''
         self.new_estimated_hours = ''
         self.new_due_date = ''
+        self.new_prioridad = ''
         self.load_todos()
         return rx.toast.success('Tarea añadida correctamente')
 
@@ -154,6 +164,7 @@ class TodoState(rx.State):
             self.editing_id = todo.id
             self.edit_title = todo.title
             self.edit_description = todo.description
+            self.edit_prioridad = todo.prioridad
             self.edit_error = ''
             self.edit_open = True
 
@@ -166,6 +177,10 @@ class TodoState(rx.State):
         self.edit_description = value
 
     @rx.event
+    def set_edit_prioridad(self, value: str):
+        self.edit_prioridad = value
+
+    @rx.event
     def set_edit_open(self, value: bool):
         self.edit_open = value
 
@@ -175,7 +190,8 @@ class TodoState(rx.State):
             TodoRepository().edit(
                 self.editing_id,
                 self.edit_title,
-                self.edit_description
+                self.edit_description,
+                prioridad=self.edit_prioridad,
             )
         except Exception as exc:
             self.edit_error = self._report(exc, 'editar la tarea')
@@ -263,6 +279,7 @@ def todo_item(todo: rx.Var[TodoView]):
                         color='#93c5fd', size='1', weight='medium',
                     ),
                 ),
+                prioridad_control(todo.prioridad),
                 rx.vstack(
                     rx.hstack(
                         rx.text(
@@ -367,8 +384,7 @@ def todo_form():
                     ),
                     align='start', gap='8px', width='100%', min_width='0',
                 ),
-                # Espacio reservado para Prioridad.
-                rx.box(height='76px'),
+                prioridad_formulario(TodoState.new_prioridad, TodoState.set_new_prioridad),
                 rx.vstack(
                     rx.hstack(
                         rx.icon('clock', size=18),
@@ -466,7 +482,7 @@ def dialogs():
             rx.dialog.content(
                 rx.dialog.title('Editar tarea'),
                 rx.dialog.description(
-                    'Modifica el título y la descripción. '
+                    'Modifica el título, la descripción y la prioridad. '
                     'La fecha y el estado se conservan.'
                 ),
                 rx.form(
@@ -484,6 +500,7 @@ def dialogs():
                             max_length=3000,
                             aria_label='Descripción de la tarea',
                         ),
+                        prioridad_edicion(TodoState.edit_prioridad, TodoState.set_edit_prioridad),
                         rx.cond(
                             TodoState.edit_error != '',
                             rx.callout(

@@ -7,6 +7,7 @@ from sqlalchemy import update
 from sqlmodel import Session, select
 from .models import Todo
 from .database import get_engine, init_database
+from .prioridad import PRIORIDADES, POR_DEFECTO
 
 
 @dataclass
@@ -20,6 +21,7 @@ class TodoView:
     formatted_date: str
     estimated_hours: float
     due_date: str = ''
+    prioridad: str = POR_DEFECTO
 
 
 def as_view(todo: Todo) -> TodoView:
@@ -29,7 +31,8 @@ def as_view(todo: Todo) -> TodoView:
     return TodoView(id=todo.id,title=todo.title,description=todo.description or '',
                     completed=todo.completed, progress=todo.progress, created_at=created.isoformat(),
                     formatted_date=created.astimezone(ZoneInfo('Europe/Madrid')).strftime('%d/%m/%Y %H:%M'),
-                    estimated_hours=todo.estimated_hours,due_date=todo.due_date or '')
+                    estimated_hours=todo.estimated_hours,due_date=todo.due_date or '',
+                    prioridad=todo.prioridad)
 
 
 def validate_text(title: str, description: str) -> tuple[str,str | None]:
@@ -39,6 +42,12 @@ def validate_text(title: str, description: str) -> tuple[str,str | None]:
     if len(title)>160 or len(description)>3000:
         raise ValueError('Máximo 160 caracteres en el título y 3000 en la descripción.')
     return title,description or None
+
+
+def validate_prioridad(prioridad: str) -> str:
+    if prioridad not in PRIORIDADES:
+        raise ValueError('Elija una prioridad válida: Baja, Media, Alta o Urgente.')
+    return prioridad
 
 
 class TodoRepository:
@@ -60,8 +69,10 @@ class TodoRepository:
         *,
         estimated_hours: str = '',
         due_date: str = '',
+        prioridad: str = POR_DEFECTO,
     ) -> TodoView:
         title,description = validate_text(title,description)
+        prioridad = validate_prioridad(prioridad)
         due_date = due_date.strip()
         if due_date:
             try:
@@ -78,19 +89,25 @@ class TodoRepository:
             raise ValueError('Las horas estimadas deben ser un número finito mayor o igual que cero.')
         with Session(self.engine) as session:
             todo = Todo(title=title,description=description,estimated_hours=hours,
-                        due_date=due_date or None)
+                        due_date=due_date or None,prioridad=prioridad)
+            # Se guarda en la misma tarea: no buscar registros por MAX(id).
             session.add(todo)
             session.commit()
             session.refresh(todo)
             return as_view(todo)
 
-    def edit(self,todo_id: int,title: str,description: str=''):
+    def edit(self,todo_id: int,title: str,description: str='',*,prioridad: str | None=None):
         title,description = validate_text(title,description)
+        if prioridad is not None:
+            prioridad = validate_prioridad(prioridad)
         with Session(self.engine) as session:
             todo = session.get(Todo,todo_id)
             if todo is None:
                 raise ValueError('La tarea ya no existe. Actualiza la lista.')
             todo.title,todo.description = title,description
+            # Texto y prioridad se confirman juntos; si falla la validación no cambia ninguno.
+            if prioridad is not None:
+                todo.prioridad = prioridad
             session.add(todo)
             session.commit()
 

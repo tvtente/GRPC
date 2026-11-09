@@ -50,3 +50,8 @@ def init_database(engine=None):
             connection.execute(text(
                 'ALTER TABLE todos ADD COLUMN due_date TEXT'
             ))
+        # Las tareas anteriores conservan la prioridad Media definida por Lindey.
+        if 'prioridad' not in column_names:
+            connection.execute(text(
+                "ALTER TABLE todos ADD COLUMN prioridad TEXT NOT NULL DEFAULT 'Media'"
+            ))

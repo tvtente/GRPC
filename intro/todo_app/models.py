@@ -1,6 +1,7 @@
 """Modelo de las capturas frame_00061 y siguientes, adaptado a SQLModel actual."""
 from datetime import datetime, timezone
 from sqlmodel import SQLModel, Field
+from .prioridad import POR_DEFECTO
 
 
 def utc_now() -> datetime:
@@ -19,3 +20,5 @@ class Todo(SQLModel, table=True):
     created_at: datetime = Field(default_factory=utc_now)
     estimated_hours: float = Field(default=0.0, nullable=False)
     due_date: str | None = Field(default=None, max_length=10)
+    # Prioridad de Lindey: forma parte de la tarea, igual que horas y progreso.
+    prioridad: str = Field(default=POR_DEFECTO, max_length=16, nullable=False)
