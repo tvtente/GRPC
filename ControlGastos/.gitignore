@@ -1,0 +1,19 @@
+assets/external/
+.states
+.web
+*.db
+.venv/
+.web/
+.states/
+reflex.lock/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.env
+.env.*
+!.env.example
+
+# Datos personales y copias de Excel: permanecerán en el equipo.
+/data/*.xlsx
+/data/*.tmp
+/data/backups/
