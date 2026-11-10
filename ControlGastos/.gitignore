@@ -17,3 +17,8 @@ __pycache__/
 /data/*.xlsx
 /data/*.tmp
 /data/backups/
+
+# Base local del nuevo esquema SQLite aprobado.
+/data/*.db
+/data/*.db-*
+/data/*.sqlite*
