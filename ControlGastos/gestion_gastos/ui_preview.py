@@ -57,31 +57,94 @@ def kpi(label: str, value: str, detail: str, icon: str) -> rx.Component:
     )
 
 
+
 def expense_table() -> rx.Component:
     return rx.box(
         rx.table.root(
-            rx.table.header(rx.table.row(*[
-                rx.table.column_header_cell(label)
-                for label in ["Fecha", "Categoría", "Descripción", "Importe", "Pago", "Acciones"]
-            ])),
-            rx.table.body(*[
+            rx.table.header(
                 rx.table.row(
-                    rx.table.cell(row[0]),
-                    rx.table.cell(rx.badge(row[1], color_scheme="teal", variant="soft")),
-                    rx.table.cell(row[2]),
-                    rx.table.cell(rx.text(row[3], weight="bold")),
-                    rx.table.cell(row[4]),
-                    rx.table.cell(rx.hstack(
-                        rx.button("Editar", size="1", variant="soft", disabled=True),
-                        rx.button("Eliminar", size="1", variant="soft", color_scheme="red", disabled=True),
-                    )),
-                ) for row in DEMO_EXPENSES
-            ]),
-            width="100%", variant="surface",
+                    rx.table.column_header_cell("Fecha"),
+                    rx.table.column_header_cell("Categoría"),
+                    rx.table.column_header_cell("Descripción"),
+                    rx.table.column_header_cell("Importe"),
+                    rx.table.column_header_cell("Acciones"),
+                )
+            ),
+            rx.table.body(
+                rx.foreach(
+                    AppState.expenses,
+                    lambda row: rx.table.row(
+                        rx.table.cell(row["date"]),
+                        rx.table.cell(
+                            rx.badge(
+                                row["category"],
+                                color_scheme="teal",
+                                variant="soft",
+                            )
+                        ),
+                        rx.table.cell(row["description"]),
+                        rx.table.cell(
+                            rx.text(row["amount"] + " €", weight="bold")
+                        ),
+                        rx.table.cell(
+                            rx.hstack(
+                                rx.button(
+                                    "Editar",
+                                    size="1",
+                                    variant="soft",
+                                    on_click=lambda: AppState.edit_expense_event(
+                                        row["id"]
+                                    ),
+                                ),
+                                rx.alert_dialog.root(
+                                    rx.alert_dialog.trigger(
+                                        rx.button(
+                                            "Eliminar",
+                                            size="1",
+                                            variant="soft",
+                                            color_scheme="red",
+                                        )
+                                    ),
+                                    rx.alert_dialog.content(
+                                        rx.alert_dialog.title(
+                                            "¿Eliminar este gasto?"
+                                        ),
+                                        rx.alert_dialog.description(
+                                            "Esta acción no se puede deshacer."
+                                        ),
+                                        rx.flex(
+                                            rx.alert_dialog.cancel(
+                                                rx.button(
+                                                    "Cancelar",
+                                                    variant="soft",
+                                                )
+                                            ),
+                                            rx.alert_dialog.action(
+                                                rx.button(
+                                                    "Sí, eliminar",
+                                                    color_scheme="red",
+                                                    on_click=lambda: AppState.delete_expense_event(
+                                                        row["id"]
+                                                    ),
+                                                )
+                                            ),
+                                            spacing="3",
+                                            justify="end",
+                                        ),
+                                    ),
+                                ),
+                                spacing="2",
+                            )
+                        ),
+                    ),
+                )
+            ),
+            width="100%",
+            variant="surface",
         ),
-        overflow_x="auto", width="100%",
+        overflow_x="auto",
+        width="100%",
     )
-
 
 def overview() -> rx.Component:
     return rx.vstack(
@@ -132,78 +195,162 @@ def overview() -> rx.Component:
 
 def field(label: str, component: rx.Component) -> rx.Component:
     return rx.vstack(rx.text(label, size="2", weight="medium"), component,
-                     spacing="2", align="stretch", width="100%")
+                spacing="2", align="stretch", width="100%")
+
 
 
 def expenses() -> rx.Component:
     return rx.vstack(
         rx.grid(
             panel(
-                "Nuevo gasto", "Vista previa del formulario. Los controles todavía están deshabilitados.",
-                field("Descripción", rx.input(placeholder="Ej. Compra semanal", disabled=True, width="100%")),
-                rx.grid(
-                    field("Importe (€)", rx.input(type="number", placeholder="0,00", disabled=True)),
-                    field("Fecha", rx.input(type="date", disabled=True)),
-                    columns=rx.breakpoints(initial="1", sm="2"), spacing="4",
-                ),
-                rx.vstack(
-                    field("Categoría", rx.select.root(
-                        rx.select.trigger(placeholder="Seleccionar categoría", width="100%"),
-                        rx.select.content(rx.foreach(
-                            AppState.categories,
-                            lambda c: rx.select.item(c["name"], value=c["id"]),
-                        )),
-                        value=AppState.selected_category_id,
-                        on_change=AppState.set_selected_category,
-                        disabled=AppState.categories.length() == 0,
+                "Nuevo gasto",
+                "Introduce los datos del gasto.",
+                field(
+                    "Descripción",
+                    rx.input(
+                        placeholder="Ej. Compra semanal",
+                        value=AppState.description,
+                        on_change=AppState.set_description,
                         width="100%",
-                    )),
-                    rx.cond(
-                        AppState.category_error != "",
-                        rx.text(AppState.category_error, size="1", color="#b91c1c"),
-                        rx.cond(
-                            AppState.category_pending,
-                            rx.text("Selecciona una categoría para poder guardar el gasto.",
-                                    size="1", color="#b45309"),
+                    ),
+                ),
+                rx.grid(
+                    field(
+                        "Importe (€)",
+                        rx.input(
+                            type="number",
+                            placeholder="0.00",
+                            value=AppState.amount,
+                            on_change=AppState.set_amount,
                         ),
                     ),
-                    spacing="2", align="stretch", width="100%",
+                    field(
+                        "Fecha",
+                        rx.input(
+                            type="date",
+                            value=AppState.date,
+                            on_change=AppState.set_date,
+                        ),
+                    ),
+                    columns=rx.breakpoints(initial="1", sm="2"),
+                    spacing="4",
+                ),
+                rx.vstack(
+                    field(
+                        "Categoría",
+                        rx.select.root(
+                            rx.select.trigger(
+                                placeholder="Seleccionar categoría",
+                                width="100%",
+                            ),
+                            rx.select.content(
+                                rx.foreach(
+                                    AppState.categories,
+                                    lambda c: rx.select.item(
+                                        c["name"],
+                                        value=c["id"],
+                                    ),
+                                )
+                            ),
+                            value=AppState.selected_category_id,
+                            on_change=AppState.set_selected_category,
+                            width="100%",
+                        ),
+                    ),
+                    rx.cond(
+                        AppState.category_error != "",
+                        rx.text(
+                            AppState.category_error,
+                            size="1",
+                            color="#b91c1c",
+                        ),
+                        rx.cond(
+                            AppState.category_pending,
+                            rx.text(
+                                "Selecciona una categoría.",
+                                size="1",
+                                color="#b45309",
+                            ),
+                        ),
+                    ),
+                    spacing="2",
+                    align="stretch",
+                    width="100%",
                     on_mount=AppState.load_categories,
                 ),
-                rx.button(rx.icon("plus", size=16), "Guardar gasto · pendiente", disabled=True),
-                pending("Falta capturar el formulario y guardar el gasto validado.",
-                        "schemas.py: ExpenseCreate / ExpenseUpdate · state.py · services.py: create_expense"),
+                rx.button(
+                    rx.icon("plus", size=16),
+                    "Guardar gasto",
+                    on_click=AppState.create_expense_event,
+                ),
+                rx.cond(
+                    AppState.error != "",
+                    rx.text(
+                        AppState.error,
+                        color="#b91c1c",
+                        size="2",
+                    ),
+                ),
             ),
             panel(
-                "Buscar y filtrar", "Los filtros serán aplicados a los gastos del usuario autenticado.",
-                field("Buscar descripción", rx.input(placeholder="Buscar un gasto…", disabled=True)),
-                field("Categoría", rx.select(["Todas"], default_value="Todas", disabled=True)),
+                "Buscar y filtrar",
+                "Los filtros serán aplicados a los gastos del usuario autenticado.",
+                field(
+                    "Buscar descripción",
+                    rx.input(
+                        placeholder="Buscar un gasto…",
+                        disabled=True,
+                    ),
+                ),
+                field(
+                    "Categoría",
+                    rx.select(
+                        ["Todas"],
+                        default_value="Todas",
+                        disabled=True,
+                    ),
+                ),
                 rx.grid(
                     field("Desde", rx.input(type="date", disabled=True)),
                     field("Hasta", rx.input(type="date", disabled=True)),
-                    columns=rx.breakpoints(initial="1", sm="2"), spacing="4",
+                    columns=rx.breakpoints(initial="1", sm="2"),
+                    spacing="4",
                 ),
-                pending("Falta añadir parámetros de filtrado al servicio y al estado.",
-                        "services.py: ampliar list_expenses · state.py: búsqueda y fechas"),
+                pending(
+                    "Falta añadir parámetros de filtrado al servicio y al estado.",
+                    "services.py: ampliar list_expenses · state.py: búsqueda y fechas",
+                ),
                 rx.separator(),
                 rx.heading("Excel", size="3"),
                 rx.flex(
                     rx.button("Importar Excel", variant="soft", disabled=True),
                     rx.button("Exportar Excel", variant="soft", disabled=True),
-                    gap="12px", flex_wrap="wrap",
+                    gap="12px",
+                    flex_wrap="wrap",
                 ),
-                pending("Falta implementar subida, validación y descarga de Excel.",
-                        "services.py: import_excel / export_excel · schemas.py · state.py"),
+                pending(
+                    "Falta implementar subida, validación y descarga de Excel.",
+                    "services.py: import_excel / export_excel · schemas.py · state.py",
+                ),
             ),
-            columns=rx.breakpoints(initial="1", lg="2"), spacing="5", width="100%",
+            columns=rx.breakpoints(initial="1", lg="2"),
+            spacing="5",
+            width="100%",
         ),
         panel(
-            "Listado de gastos", "Tabla de demostración; acciones deshabilitadas.", expense_table(),
-            pending("La eliminación necesitará confirmación antes de llamar al servicio.",
-                    "ui_preview.py: diálogo · state.py: confirmar borrado · services.py: delete_expense"),
+            "Listado de gastos",
+            "Gastos registrados en la base de datos.",
+            expense_table(),
+            pending(
+                "La edición y eliminación se conectarán en la siguiente fase.",
+                "state.py: editar y confirmar borrado · services.py: update_expense / delete_expense",
+            ),
         ),
-        spacing="5", width="100%", align="stretch",
+        spacing="5",
+        width="100%",
+        align="stretch",
     )
+
 
 
 def access() -> rx.Component:

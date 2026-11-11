@@ -11,7 +11,7 @@ import pandas as pd
 from sqlalchemy import select
 
 from .database import get_session
-from .models import Category
+from .models import Category, Expense
 from .schemas import CategoryRead, ExpenseCreate, ExpenseRead, ExpenseUpdate, UserCreate, UserLogin, UserRead
 
 
@@ -33,23 +33,98 @@ def list_categories() -> list[CategoryRead]:
 
 
 def list_expenses(*, user_id: int) -> list[ExpenseRead]:
-    raise NotImplementedError("Listado por usuario pendiente.")
+    with get_session() as session:
+        statement = (
+            select(Expense)
+            .where(Expense.user_id == user_id)
+            .order_by(Expense.date.desc(), Expense.id.desc())
+        )
+
+        expenses = session.scalars(statement).all()
+
+        return [
+            ExpenseRead.model_validate(expense)
+            for expense in expenses
+        ]
+
 
 
 def get_expense(expense_id: int, *, user_id: int) -> ExpenseRead:
-    raise NotImplementedError("Consulta por ID y propietario pendiente.")
+    with get_session() as session:
+        statement = select(Expense).where(
+            Expense.id == expense_id,
+            Expense.user_id == user_id,
+        )
+
+        expense = session.scalar(statement)
+
+        if expense is None:
+            raise ValueError("Gasto no encontrado.")
+
+        return ExpenseRead.model_validate(expense)
+
 
 
 def create_expense(data: ExpenseCreate, *, user_id: int) -> ExpenseRead:
-    raise NotImplementedError("Creación de gasto pendiente.")
+    with get_session() as session:
+        expense = Expense(
+            description=data.description,
+            amount=data.amount,
+            date=data.date,
+            category_id=data.category_id,
+            user_id=user_id,
+        )
+
+        session.add(expense)
+        session.flush()
+
+        return ExpenseRead.model_validate(expense)
 
 
-def update_expense(expense_id: int, data: ExpenseUpdate, *, user_id: int) -> ExpenseRead:
-    raise NotImplementedError("Edición por ID y propietario pendiente.")
+
+def update_expense(
+    expense_id: int,
+    data: ExpenseUpdate,
+    *,
+    user_id: int,
+) -> ExpenseRead:
+    with get_session() as session:
+        statement = select(Expense).where(
+            Expense.id == expense_id,
+            Expense.user_id == user_id,
+        )
+
+        expense = session.scalar(statement)
+
+        if expense is None:
+            raise ValueError("Gasto no encontrado.")
+
+        expense.description = data.description
+        expense.amount = data.amount
+        expense.date = data.date
+        expense.category_id = data.category_id
+
+        session.flush()
+
+        return ExpenseRead.model_validate(expense)
+
+
 
 
 def delete_expense(expense_id: int, *, user_id: int) -> None:
-    raise NotImplementedError("Eliminación por ID y propietario pendiente.")
+    with get_session() as session:
+        statement = select(Expense).where(
+            Expense.id == expense_id,
+            Expense.user_id == user_id,
+        )
+
+        expense = session.scalar(statement)
+
+        if expense is None:
+            raise ValueError("Gasto no encontrado.")
+
+        session.delete(expense)
+
 
 
 def expense_summary(*, user_id: int) -> pd.DataFrame:
