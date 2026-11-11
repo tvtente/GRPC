@@ -6,6 +6,7 @@ que conectarán cada sección en las próximas fases.
 
 import reflex as rx
 from .work_plan import RESPONSIBILITIES, TEAM_AGREEMENTS, DELIVERY_ORDER
+from .state import AppState
 
 
 DEMO_EXPENSES = [
@@ -145,10 +146,30 @@ def expenses() -> rx.Component:
                     field("Fecha", rx.input(type="date", disabled=True)),
                     columns=rx.breakpoints(initial="1", sm="2"), spacing="4",
                 ),
-                field("Categoría", rx.select(
-                    ["Alimentación", "Transporte", "Vivienda", "Salud", "Educación", "Ocio", "Compras", "Servicios", "Otros"],
-                    placeholder="Seleccionar categoría", disabled=True, width="100%",
-                )),
+                rx.vstack(
+                    field("Categoría", rx.select.root(
+                        rx.select.trigger(placeholder="Seleccionar categoría", width="100%"),
+                        rx.select.content(rx.foreach(
+                            AppState.categories,
+                            lambda c: rx.select.item(c["name"], value=c["id"]),
+                        )),
+                        value=AppState.selected_category_id,
+                        on_change=AppState.set_selected_category,
+                        disabled=AppState.categories.length() == 0,
+                        width="100%",
+                    )),
+                    rx.cond(
+                        AppState.category_error != "",
+                        rx.text(AppState.category_error, size="1", color="#b91c1c"),
+                        rx.cond(
+                            AppState.category_pending,
+                            rx.text("Selecciona una categoría para poder guardar el gasto.",
+                                    size="1", color="#b45309"),
+                        ),
+                    ),
+                    spacing="2", align="stretch", width="100%",
+                    on_mount=AppState.load_categories,
+                ),
                 rx.button(rx.icon("plus", size=16), "Guardar gasto · pendiente", disabled=True),
                 pending("Falta capturar el formulario y guardar el gasto validado.",
                         "schemas.py: ExpenseCreate / ExpenseUpdate · state.py · services.py: create_expense"),

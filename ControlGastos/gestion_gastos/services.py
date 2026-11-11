@@ -8,7 +8,10 @@ Las funciones pendientes fallan explícitamente: no simulan un guardado exitoso.
 from pathlib import Path
 
 import pandas as pd
+from sqlalchemy import select
 
+from .database import get_session
+from .models import Category
 from .schemas import CategoryRead, ExpenseCreate, ExpenseRead, ExpenseUpdate, UserCreate, UserLogin, UserRead
 
 
@@ -23,7 +26,10 @@ def authenticate_user(data: UserLogin) -> UserRead:
 
 
 def list_categories() -> list[CategoryRead]:
-    raise NotImplementedError("Consulta de categorías pendiente.")
+    """Categorías en orden de ID, para el selector del formulario."""
+    with get_session() as session:
+        rows = session.scalars(select(Category).order_by(Category.id))
+        return [CategoryRead.model_validate(row) for row in rows]
 
 
 def list_expenses(*, user_id: int) -> list[ExpenseRead]:
